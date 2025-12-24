@@ -1,0 +1,52 @@
+{
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "Avatar for Sarah Lee",
+      "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d29tYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjYxODE0NzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "user-avatar-2",
+      "description": "Avatar for Mike Johnson",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjYxNTY0NTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "user-avatar-3",
+      "description": "Avatar for Emily Chen",
+      "imageUrl": "https://images.unsplash.com/photo-1554727242-741c14fa561c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzY2MTY3NTg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "user-avatar-4",
+      "description": "Avatar for David Kim",
+      "imageUrl": "https://images.unsplash.com/photo-1576110598658-096ae24cdb97?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBnbGFzc2VzfGVufDB8fHx8MTc2NjE3MjQzMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man glasses"
+    },
+    {
+      "id": "user-avatar-current",
+      "description": "Avatar for current user Alex Doe",
+      "imageUrl": "https://images.unsplash.com/photo-1657331017197-061601b1de71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBwcm9maWxlfGVufDB8fHx8MTc2NjE2MzIwM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person profile"
+    },
+    {
+      "id": "post-image-1",
+      "description": "Campus library photo",
+      "imageUrl": "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb2xsZWdlJTIwbGlicmFyeXxlbnwwfHx8fDE3NjYxNzMwMTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "college library"
+    },
+    {
+      "id": "post-image-2",
+      "description": "Students studying together",
+      "imageUrl": "https://images.unsplash.com/photo-1543269865-cbf427effbad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzdHVkZW50cyUyMHN0dWR5aW5nfGVufDB8fHx8MTc2NjE2MDYzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "students studying"
+    },
+    {
+      "id": "college-id-placeholder",
+      "description": "Placeholder for College ID upload",
+      "imageUrl": "https://images.unsplash.com/photo-1614267119077-51bdcbf9f77a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxpZCUyMGNhcmR8ZW58MHx8fHwxNzY2MjA3MjcyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "id card"
+    }
+  ]
+}
