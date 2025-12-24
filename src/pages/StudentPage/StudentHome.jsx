@@ -1,4 +1,3 @@
-// src/pages/StudentPage/StudentHome.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,19 +17,13 @@ import {
 } from "firebase/firestore";
 import { improvePost, summarizePost } from "../../services/gemini";
 import { auth, db } from "../../services/firebase";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { Select, SelectItem } from "../../components/ui/select";
-
 import { TabButton, Comments, compressImage } from "./shared";
 import GgvCommunity from "./GgvCommunity";
 import DeptCommunity from "./DeptCommunity";
+import ClubCommunity from "./ClubCommunity";
 import StudentsList from "./StudentsList";
 import NewsDashboard from "./NewsDashboard";
 
-// same as before, just renamed Feed -> StudentHome
 export default function StudentHome() {
   const navigate = useNavigate();
 
@@ -83,7 +76,7 @@ export default function StudentHome() {
     return () => unsub();
   }, []);
 
-  // posts
+  // posts (GGV + Dept + Clubs)
   useEffect(() => {
     if (!userDept) return;
 
@@ -95,6 +88,12 @@ export default function StudentHome() {
         collection(db, "posts"),
         where("scope", "==", "dept"),
         where("department", "==", userDept)
+      );
+    } else if (tab === "clubs") {
+      // Only posts created by admin for Club Community
+      qPosts = query(
+        collection(db, "posts"),
+        where("authorRole", "==", "admin")
       );
     } else {
       return;
@@ -133,7 +132,7 @@ export default function StudentHome() {
     loadStudents();
   }, [tab]);
 
-  // create post
+  // create post (for GGV and Dept tabs)
   const createPost = async () => {
     if (!postText.trim() || !user) return;
 
@@ -149,7 +148,7 @@ export default function StudentHome() {
       authorName: `${user.firstName} ${user.lastName}`,
       authorDept: user.department,
       authorYear: user.year,
-      scope: tab,
+      scope: tab, // "ggv" or "dept"
       department: user.department,
       createdAt: serverTimestamp(),
       likes: [],
@@ -202,6 +201,9 @@ export default function StudentHome() {
         <TabButton active={tab === "dept"} onClick={() => setTab("dept")}>
           Department Community
         </TabButton>
+        <TabButton active={tab === "clubs"} onClick={() => setTab("clubs")}>
+          Club Community
+        </TabButton>
         <TabButton active={tab === "students"} onClick={() => setTab("students")}>
           Students
         </TabButton>
@@ -247,6 +249,18 @@ export default function StudentHome() {
             setDept={setDept}
             navigate={navigate}
             Comments={Comments}
+          />
+        )}
+
+        {tab === "clubs" && (
+          <ClubCommunity
+            posts={posts}
+            user={user}
+            toggleLike={toggleLike}
+            navigate={navigate}
+            Comments={Comments}
+            dept={dept}
+            setDept={setDept}
           />
         )}
 

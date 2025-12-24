@@ -1,4 +1,4 @@
-// src/pages/StudentPage/DeptCommunity.jsx
+// src/pages/StudentPage/ClubCommunity.jsx
 import {
   Card,
   CardContent,
@@ -6,111 +6,57 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/ui/textarea";
-import { improvePost, summarizePost } from "../../services/gemini";
+import { summarizePost } from "../../services/gemini";
 import AIResultModal from "../../components/AIResultModal";
 import { useState } from "react";
-import { useImageViewer } from "./shared"; // <-- add this
+import { useImageViewer } from "./shared";
 
-export default function DeptCommunity({
+const CLUB_LABELS = {
+  nex: "Nexus",
+  gdgc: "GDGC",
+  gfg: "GFG",
+};
+
+export default function ClubCommunity({
   posts,
   user,
-  postText,
-  setPostText,
-  postImage,
-  setPostImage,
-  createPost,
   toggleLike,
   navigate,
   Comments,
   dept,
   setDept,
 }) {
+  // Filter by club field
   const filteredPosts = posts.filter((p) => {
     if (dept === "all") return true;
-    const postDept = (p.department || p.authorDept || "").toLowerCase();
-    return postDept === dept;
+    const postClub = (p.club || "").toLowerCase();
+    return postClub === dept;
   });
 
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiText, setAiText] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryText, setSummaryText] = useState("");
 
   // fullscreen image hook
-  const { setFullscreenImage, ImageModal } = useImageViewer(); // <-- add this
+  const { setFullscreenImage, ImageModal } = useImageViewer();
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Create Post</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Textarea
-                placeholder="Write something..."
-                value={postText}
-                onChange={(e) => setPostText(e.target.value)}
-              />
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPostImage(e.target.files?.[0] || null)}
-              />
-              <div className="flex gap-2">
-                <Button className="flex-1" onClick={createPost}>
-                  Post
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={async () => {
-                    if (!postText.trim()) return;
-
-                    try {
-                      console.log("AI button clicked, text =", postText);
-                      const improved = await improvePost(postText);
-                      console.log("AI result =", improved);
-                      if (!improved) return;
-                      setAiText(improved);
-                      setAiOpen(true);
-                    } catch (err) {
-                      console.error("AI error in improvePost:", err);
-                    }
-                  }}
-                >
-                  ✨ Improve with AI
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* department filter */}
+          {/* club filter */}
           <div className="border p-2 rounded bg-background">
             <label className="text-xs text-muted-foreground block mb-1">
-              Filter by Department
+              Filter by Club
             </label>
             <select
               className="border p-2 rounded w-full"
               value={dept}
               onChange={(e) => setDept(e.target.value)}
             >
-              <option value="all">All Departments</option>
-              <option value="cs">CSE</option>
-              <option value="it">IT</option>
-              <option value="ee">EE</option>
-              <option value="ece">ECE</option>
-              <option value="me">ME</option>
-              <option value="ce">CE (Civil Engineering)</option>
-              <option value="che">CE (Chemical Engineering)</option>
-              <option value="ipe">IPE</option>
-              <option value="aiml">AIML</option>
-              <option value="anim">ANIM</option>
+              <option value="all">All Clubs</option>
+              <option value="nex">Nexus</option>
+              <option value="gdgc">GDGC</option>
+              <option value="gfg">GFG</option>
             </select>
           </div>
 
@@ -132,9 +78,18 @@ export default function DeptCommunity({
                       {post.authorEmail[0].toUpperCase()}
                     </div>
                   )}
-                  <CardTitle className="text-sm hover:underline">
-                    {post.authorEmail}
-                  </CardTitle>
+
+                <div className="flex flex-col">
+  {post.club && (
+    <span className="text-xs md:text-sm uppercase font-bold text-black">
+      {CLUB_LABELS[post.club] || post.club}
+    </span>
+  )}
+  <CardTitle className="text-[11px] md:text-xs font-normal">
+    {post.authorEmail}
+  </CardTitle>
+</div>
+
                 </div>
               </CardHeader>
 
@@ -145,7 +100,7 @@ export default function DeptCommunity({
                   <img
                     src={post.image}
                     className="rounded max-h-64 cursor-pointer hover:scale-105 transition"
-                    onClick={() => setFullscreenImage(post.image)} // <-- hook
+                    onClick={() => setFullscreenImage(post.image)}
                     alt="post"
                   />
                 )}
@@ -180,16 +135,6 @@ export default function DeptCommunity({
           ))}
         </div>
 
-        {/* AI modal for Improve with AI */}
-        <AIResultModal
-          open={aiOpen}
-          onClose={() => setAiOpen(false)}
-          title="AI Result"
-          helper="Select, copy, and paste in the Post section."
-          text={aiText}
-        />
-
-        {/* AI modal for Summary */}
         <AIResultModal
           open={summaryOpen}
           onClose={() => setSummaryOpen(false)}

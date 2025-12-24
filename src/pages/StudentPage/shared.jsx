@@ -9,25 +9,29 @@ import {
 } from "firebase/firestore";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import {
-  improvePost,
-  summarizePost,
-} from "../../services/gemini";
+import { improvePost, summarizePost } from "../../services/gemini";
 
 /* image compression */
 export const compressImage = (file, maxWidth = 1000, quality = 0.8) =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error("No file provided"));
+      return;
+    }
+
     const img = new Image();
     const reader = new FileReader();
 
-    reader.onload = (e) => (img.src = e.target.result);
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
     reader.readAsDataURL(file);
 
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const scale = maxWidth / img.width;
+      const scale = img.width > maxWidth ? maxWidth / img.width : 1;
 
-      canvas.width = maxWidth;
+      canvas.width = img.width * scale;
       canvas.height = img.height * scale;
 
       const ctx = canvas.getContext("2d");
@@ -43,9 +47,11 @@ export const compressImage = (file, maxWidth = 1000, quality = 0.8) =>
         quality
       );
     };
+
+    img.onerror = () => reject(new Error("Failed to load image"));
   });
 
-export function TabButton({ active, children, ...props }) {
+export function TabButton({ active, children, className = "", ...props }) {
   return (
     <button
       {...props}
@@ -53,7 +59,7 @@ export function TabButton({ active, children, ...props }) {
         active
           ? "bg-primary text-primary-foreground"
           : "bg-muted text-muted-foreground"
-      }`}
+      } ${className}`}
     >
       {children}
     </button>
@@ -65,19 +71,23 @@ export function Comments({ postId }) {
   const [text, setText] = useState("");
 
   useEffect(() => {
+    if (!postId) return;
+
     const q = collection(db, "posts", postId, "comments");
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setComments(snapshot.docs.map((d) => d.data()));
+      setComments(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
+
     return () => unsubscribe();
   }, [postId]);
 
   const addComment = async () => {
-    if (!text.trim()) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
 
     await addDoc(collection(db, "posts", postId, "comments"), {
-      text,
-      authorEmail: auth.currentUser.email,
+      text: trimmed,
+      authorEmail: auth.currentUser?.email || "unknown",
       createdAt: serverTimestamp(),
     });
 
@@ -86,8 +96,8 @@ export function Comments({ postId }) {
 
   return (
     <div className="space-y-2">
-      {comments.map((c, i) => (
-        <p key={i} className="text-xs">
+      {comments.map((c) => (
+        <p key={c.id} className="text-xs">
           <b>{c.authorEmail}</b>: {c.text}
         </p>
       ))}
@@ -104,4 +114,26 @@ export function Comments({ postId }) {
       </div>
     </div>
   );
+}
+
+// Reusable fullscreen image viewer
+export function useImageViewer() {
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+
+  const ImageModal = () =>
+    fullscreenImage ? (
+      <div
+        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+        onClick={() => setFullscreenImage(null)}
+      >
+        <img
+          src={fullscreenImage}
+          alt="fullscreen"
+          className="max-h-[90vh] max-w-[90vw]"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    ) : null;
+
+  return { fullscreenImage, setFullscreenImage, ImageModal };
 }

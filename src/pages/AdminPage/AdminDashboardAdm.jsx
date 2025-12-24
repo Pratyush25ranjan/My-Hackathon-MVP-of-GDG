@@ -1,3 +1,4 @@
+// src/pages/AdminPage/AdminDashboardAdm.jsx
 import { useEffect, useState } from "react";
 import {
   collection,
@@ -7,6 +8,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db, auth } from "../../services/firebase";
 import { Button } from "../../components/ui/button";
@@ -16,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 
 import GgvCommunityAdm from "./GgvCommunityAdm";
 import DeptCommunityAdm from "./DeptCommunityAdm";
+import AdmClubCommunity from "./AdmClubCommunity";
 import StudentsListAdm from "./StudentsListAdm";
 import AdminNewsDashboardAdm from "./AdminNewsDashboardAdm";
 import { TabButtonAdm } from "./Adminshared";
@@ -35,6 +38,8 @@ export default function AdminDashboardAdm() {
 
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [adminUser, setAdminUser] = useState(null);
 
   const blockStudent = async (uid) => {
     await updateDoc(doc(db, "users", uid), { blocked: true });
@@ -101,9 +106,11 @@ export default function AdminDashboardAdm() {
 
   useEffect(() => {
     const loadAll = async () => {
+      // all posts
       const postSnap = await getDocs(collection(db, "posts"));
       setPosts(postSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
+      // all users
       const userSnap = await getDocs(collection(db, "users"));
       const approved = [];
       const pending = [];
@@ -116,6 +123,13 @@ export default function AdminDashboardAdm() {
 
       setApprovedStudents(approved);
       setPendingStudents(pending);
+
+      // current admin user
+      const adminSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
+      if (adminSnap.exists()) {
+        setAdminUser({ id: adminSnap.id, ...adminSnap.data() });
+      }
+
       setLoading(false);
     };
 
@@ -162,6 +176,12 @@ export default function AdminDashboardAdm() {
           Department Community
         </TabButtonAdm>
         <TabButtonAdm
+          active={activeTab === "clubs"}
+          onClick={() => setActiveTab("clubs")}
+        >
+          Club Community
+        </TabButtonAdm>
+        <TabButtonAdm
           active={activeTab === "students"}
           onClick={() => setActiveTab("students")}
         >
@@ -191,6 +211,14 @@ export default function AdminDashboardAdm() {
             setDept={setDept}
             setFullscreenImage={setFullscreenImage}
             openReviewFromPost={openReviewFromPost}
+          />
+        )}
+
+        {activeTab === "clubs" && (
+          <AdmClubCommunity
+            posts={posts}
+            adminUser={adminUser}
+            setFullscreenImage={setFullscreenImage}
           />
         )}
 
@@ -241,8 +269,7 @@ export default function AdminDashboardAdm() {
               {(reviewStudent.profileImageBase64 || reviewStudent.photoURL) && (
                 <img
                   src={
-                    reviewStudent.profileImageBase64 ||
-                    reviewStudent.photoURL
+                    reviewStudent.profileImageBase64 || reviewStudent.photoURL
                   }
                   className="w-16 h-16 rounded-full object-cover"
                   alt="profile"
