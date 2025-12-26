@@ -64,26 +64,26 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-4">
         {/* Info box with demo credentials */}
-        <div className="border rounded-md bg-muted/40 px-4 py-3 text-sm">
+        {/* <div className="border rounded-md bg-muted/40 px-4 py-3 text-sm">
           <p className="font-semibold mb-1">
-            Currently student verification is done manually by Admin.
+            {/* Currently student verification is done manually by Admin. */}
           </p>
           <p className="mb-2">
-            To try the MVP, use the following login credentials:
+            {/* To try the MVP, use the following login credentials:  */}
           </p>
 
-          <div className="mb-2">
+          {/* <div className="mb-2">
             <p className="font-semibold">Admin</p>
             <p>Email: <span className="font-mono">pratyush25ranjan@gmail.com</span></p>
             <p>Password: <span className="font-mono">12345678</span></p>
-          </div>
+          </div> */}
 
-          <div>
+          {/* <div>
             <p className="font-semibold">Verified student</p>
             <p>Email: <span className="font-mono">pratyush2507ranjan@gmail.com</span></p>
             <p>Password: <span className="font-mono">123456</span></p>
-          </div>
-        </div>
+          </div> */}
+        </div> */}
 
         <Card className="w-full">
           <CardHeader className="text-center">
@@ -131,3 +131,4 @@ export default function Login() {
     </div>
   );
 }
+
