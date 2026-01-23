@@ -23,6 +23,7 @@ import DeptCommunity from "./DeptCommunity";
 import ClubCommunity from "./ClubCommunity";
 import StudentsList from "./StudentsList";
 import NewsDashboard from "./NewsDashboard";
+import Help from "../StuHelp/Help";
 
 export default function StudentHome() {
   const navigate = useNavigate();
@@ -210,6 +211,11 @@ export default function StudentHome() {
         <TabButton active={tab === "news"} onClick={() => setTab("news")}>
           News Dashboard
         </TabButton>
+      <TabButton active={tab === "help"} onClick={() => setTab("help")}>
+  Help
+</TabButton>
+
+
       </div>
 
       {/* content */}
@@ -278,6 +284,8 @@ export default function StudentHome() {
         )}
 
         {tab === "news" && <NewsDashboard news={news} />}
+        {tab === "help" && <Help role="student" />}
+
       </div>
     </div>
   );

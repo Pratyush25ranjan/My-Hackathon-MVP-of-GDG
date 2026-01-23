@@ -1,3 +1,4 @@
+// src/pages/Profile.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,7 +16,6 @@ import { signOut } from "firebase/auth";
 import { auth, db } from "../services/firebase";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-
 import { Card, CardContent } from "../components/ui/card";
 import { Textarea } from "../components/ui/textarea";
 
@@ -23,7 +23,6 @@ export default function Profile() {
   const navigate = useNavigate();
   const uid = auth.currentUser.uid;
   const email = auth.currentUser.email;
-  
 
   /* ---------------- STATES ---------------- */
   const [tab, setTab] = useState("details");
@@ -40,18 +39,19 @@ export default function Profile() {
   const [editingPostId, setEditingPostId] = useState(null);
   const [editText, setEditText] = useState("");
   const [editImage, setEditImage] = useState(null);
-const DEPT_LABELS = {
-  it: "IT",
-  cs: "CSE",
-  ee: "EE",
-  ece: "ECE",
-  me: "ME",
-  ipe: "IPE",
-  che: "CHE",
-  ce: "CE",
-  aiml: "AIML",
-  anim: "ANIM",
-};
+
+  const DEPT_LABELS = {
+    it: "IT",
+    cs: "CSE",
+    ee: "EE",
+    ece: "ECE",
+    me: "ME",
+    ipe: "IPE",
+    che: "CHE",
+    ce: "CE",
+    aiml: "AIML",
+    anim: "ANIM",
+  };
 
   /* ---------------- IMAGE COMPRESSION ---------------- */
   const compressImage = (file, maxWidth = 900, quality = 0.8) =>
@@ -97,34 +97,40 @@ const DEPT_LABELS = {
     loadProfile();
   }, [uid]);
 
-  /* ---------------- LOAD MY POSTS ---------------- */
+  /* ---------------- LOAD MY POSTS (by uid) ---------------- */
   useEffect(() => {
     if (tab !== "posts") return;
 
     const loadPosts = async () => {
-      const q = query(
-        collection(db, "posts"),
-        where("authorEmail", "==", email)
-      );
+      const q = query(collection(db, "posts"), where("authorUid", "==", uid));
       const snap = await getDocs(q);
       setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     };
 
     loadPosts();
-  }, [tab, email]);
+  }, [tab, uid]);
 
   /* ---------------- SORT + FILTER ---------------- */
   const visiblePosts = posts
     .filter((p) => {
       if (!filterMonth) return true;
-      const m = new Date(p.createdAt).getMonth() + 1;
+      const date =
+        p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
+      const m = date.getMonth() + 1;
       return String(m) === filterMonth;
     })
     .sort((a, b) => {
-      if (sortBy === "newest") return b.createdAt - a.createdAt;
-      if (sortBy === "oldest") return a.createdAt - b.createdAt;
-      if (sortBy === "likes") return (b.likes?.length || 0) - (a.likes?.length || 0);
-      if (sortBy === "comments") return (b.commentCount || 0) - (a.commentCount || 0);
+      const da =
+        a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const db_ =
+        b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+
+      if (sortBy === "newest") return db_ - da;
+      if (sortBy === "oldest") return da - db_;
+      if (sortBy === "likes")
+        return (b.likes?.length || 0) - (a.likes?.length || 0);
+      if (sortBy === "comments")
+        return (b.commentCount || 0) - (a.commentCount || 0);
       return 0;
     });
 
@@ -135,24 +141,35 @@ const DEPT_LABELS = {
     setPreviewImage(img);
   };
 
- const saveProfile = async () => {
-  try {
-    if (!previewImage) {
-      alert("No image selected");
-      return;
+  const saveProfile = async () => {
+    try {
+      if (!previewImage) {
+        alert("No image selected");
+        return;
+      }
+
+      // 1) update user document
+      await updateDoc(doc(db, "users", uid), {
+        profileImageBase64: previewImage,
+      });
+
+      // 2) update all posts by this user so admin/student feeds see new pic
+      const q = query(collection(db, "posts"), where("authorUid", "==", uid));
+      const snap = await getDocs(q);
+
+      await Promise.all(
+        snap.docs.map((d) =>
+          updateDoc(d.ref, {
+            authorProfileImageBase64: previewImage,
+          })
+        )
+      );
+
+      alert("Profile picture updated successfully");
+    } catch (err) {
+      alert(err.message);
     }
-
-  await updateDoc(doc(db, "users", uid), {
-  profileImageBase64: previewImage,
-});
-
-
-    alert("Profile picture updated successfully");
-  } catch (err) {
-    alert(err.message);
-  }
-};
-
+  };
 
   const deletePost = async (postId) => {
     await deleteDoc(doc(db, "posts", postId));
@@ -177,172 +194,171 @@ const DEPT_LABELS = {
   if (!user) return null;
 
   /* ================= RENDER ================= */
- return (
-  <div className="min-h-screen bg-muted/40">
-    {/* HEADER */}
-    <div className="flex items-center justify-between px-6 py-4 bg-background border-b">
-      <button onClick={() => navigate(-1)}>← Back</button>
-      <h1 className="font-bold text-xl">Your Profile</h1>
-      <Button variant="outline" onClick={logout}>
-        Logout
-      </Button>
-    </div>
+  return (
+    <div className="min-h-screen bg-muted/40">
+      {/* HEADER */}
+      <div className="flex items-center justify-between px-6 py-4 bg-background border-b">
+        <button onClick={() => navigate(-1)}>← Back</button>
+        <h1 className="font-bold text-xl">Your Profile</h1>
+        <Button variant="outline" onClick={logout}>
+          Logout
+        </Button>
+      </div>
 
-    {/* TABS */}
-    <div className="flex gap-4 px-6 py-3 bg-background border-b">
-      <TabButton active={tab === "details"} onClick={() => setTab("details")}>
-        Personal Details
-      </TabButton>
-      <TabButton active={tab === "posts"} onClick={() => setTab("posts")}>
-        Your Posts
-      </TabButton>
-    </div>
+      {/* TABS */}
+      <div className="flex gap-4 px-6 py-3 bg-background border-b">
+        <TabButton active={tab === "details"} onClick={() => setTab("details")}>
+          Personal Details
+        </TabButton>
+        <TabButton active={tab === "posts"} onClick={() => setTab("posts")}>
+          Your Posts
+        </TabButton>
+      </div>
 
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* ========== DETAILS ========== */}
-      {tab === "details" && user && (
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            {/* Profile Image (ONLY editable field) */}
-            <div className="flex flex-col items-center gap-3">
-              <img
-                src={previewImage}
-                onClick={() =>
-                  previewImage && setFullscreenImage(previewImage)
-                }
-                className="h-24 w-24 rounded-full object-cover cursor-pointer"
-              />
+      <div className="p-6 max-w-5xl mx-auto">
+        {/* ========== DETAILS ========== */}
+        {tab === "details" && user && (
+          <Card>
+            <CardContent className="space-y-4 pt-6">
+              {/* Profile Image (ONLY editable field) */}
+              <div className="flex flex-col items-center gap-3">
+                <img
+                  src={previewImage}
+                  onClick={() =>
+                    previewImage && setFullscreenImage(previewImage)
+                  }
+                  className="h-24 w-24 rounded-full object-cover cursor-pointer"
+                />
 
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  handleProfileImageChange(e.target.files[0])
-                }
-              />
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    handleProfileImageChange(e.target.files[0])
+                  }
+                />
 
-              <p className="text-xs text-muted-foreground text-center">
-                You can update your profile picture from here.
-                <br />
-                Other personal details are locked after verification.
-              </p>
+                <p className="text-xs text-muted-foreground text-center">
+                  You can update your profile picture from here.
+                  <br />
+                  Other personal details are locked after verification.
+                </p>
+              </div>
+
+              {/* LOCKED FIELDS */}
+              <Input value={user.firstName || ""} disabled />
+              <Input value={user.lastName || ""} disabled />
+              <Input value={email || ""} disabled />
+              <Input value={DEPT_LABELS[user.department] || ""} disabled />
+              <Input value={user.year || ""} disabled />
+
+              {/* Save button (image only) */}
+              <Button onClick={saveProfile} className="w-full">
+                Save Profile Picture
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ========== POSTS ========== */}
+        {tab === "posts" && (
+          <>
+            {/* SORT + FILTER */}
+            <div className="flex gap-3 mb-4">
+              <select
+                value={sortBy || "newest"}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="likes">Most Liked</option>
+                <option value="comments">Most Commented</option>
+              </select>
+
+              <select
+                value={filterMonth || ""}
+                onChange={(e) => setFilterMonth(e.target.value)}
+              >
+                <option value="">All Months</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i} value={i + 1}>
+                    {new Date(0, i).toLocaleString("default", {
+                      month: "short",
+                    })}
+                  </option>
+                ))}
+              </select>
             </div>
-            
 
-            {/* LOCKED FIELDS */}
-            <Input value={user.firstName || ""} disabled />
-            <Input value={user.lastName || ""} disabled />
-            <Input value={email || ""} disabled />
-           <Input value={DEPT_LABELS[user.department] || ""}disabled/>
+            {visiblePosts.map((post) => (
+              <Card key={post.id} className="mb-6">
+                <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+                  {/* LEFT */}
+                  <div className="lg:col-span-2 space-y-3">
+                    {editingPostId === post.id ? (
+                      <>
+                        <Textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                        />
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const img = await compressImage(
+                              e.target.files[0]
+                            );
+                            setEditImage(img);
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => saveEdit(post.id)}
+                        >
+                          Save
+                        </Button>
+                      </>
+                    ) : (
+                      <p>{post.text}</p>
+                    )}
 
-            <Input value={user.year || ""} disabled />
-
-            {/* Save button (image only) */}
-            <Button onClick={saveProfile} className="w-full">
-              Save Profile Picture
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ========== POSTS ========== */}
-      {tab === "posts" && (
-        <>
-          {/* SORT + FILTER */}
-          <div className="flex gap-3 mb-4">
-            <select
-              value={sortBy || "newest"}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="likes">Most Liked</option>
-              <option value="comments">Most Commented</option>
-            </select>
-
-            <select
-              value={filterMonth || ""}
-              onChange={(e) => setFilterMonth(e.target.value)}
-            >
-              <option value="">All Months</option>
-              {[...Array(12)].map((_, i) => (
-                <option key={i} value={i + 1}>
-                  {new Date(0, i).toLocaleString("default", {
-                    month: "short",
-                  })}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {visiblePosts.map((post) => (
-            <Card key={post.id} className="mb-6">
-              <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-                {/* LEFT */}
-                <div className="lg:col-span-2 space-y-3">
-                  {editingPostId === post.id ? (
-                    <>
-                      <Textarea
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
+                    {post.image && (
+                      <img
+                        src={post.image}
+                        className="rounded max-h-64 cursor-pointer"
+                        onClick={() => setFullscreenImage(post.image)}
                       />
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const img = await compressImage(
-                            e.target.files[0]
-                          );
-                          setEditImage(img);
-                        }}
-                      />
-                      <Button size="sm" onClick={() => saveEdit(post.id)}>
-                        Save
-                      </Button>
-                    </>
-                  ) : (
-                    <p>{post.text}</p>
-                  )}
+                    )}
 
-                  {post.image && (
-                    <img
-                      src={post.image}
-                      className="rounded max-h-64 cursor-pointer"
-                      onClick={() => setFullscreenImage(post.image)}
-                    />
-                  )}
-
-                  <div className="flex justify-between text-xs">
-                    <span>❤️ {post.likes?.length || 0}</span>
-                    <div className="space-x-3">
-                      <button
-                        onClick={() => {
-                          setEditingPostId(post.id);
-                          setEditText(post.text);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="text-red-500"
-                        onClick={() => deletePost(post.id)}
-                      >
-                        Delete
-                      </button>
+                    <div className="flex justify-between text-xs">
+                      <span>❤️ {post.likes?.length || 0}</span>
+                      <div className="space-x-3">
+                        <button
+                          onClick={() => {
+                            setEditingPostId(post.id);
+                            setEditText(post.text);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="text-red-500"
+                          onClick={() => deletePost(post.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* RIGHT */}
-                <CommentsPanel postId={post.id} />
-              </CardContent>
-            </Card>
-          ))}
-        </>
-      )}
-    </div>
-
-
+                  {/* RIGHT */}
+                  <CommentsPanel postId={post.id} />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        )}
+      </div>
 
       {/* FULLSCREEN IMAGE */}
       {fullscreenImage && (

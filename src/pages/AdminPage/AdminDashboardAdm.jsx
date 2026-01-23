@@ -15,6 +15,7 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { sendStudentStatusEmail } from "../../utils/email";
 
 import GgvCommunityAdm from "./GgvCommunityAdm";
 import DeptCommunityAdm from "./DeptCommunityAdm";
@@ -22,6 +23,7 @@ import AdmClubCommunity from "./AdmClubCommunity";
 import StudentsListAdm from "./StudentsListAdm";
 import AdminNewsDashboardAdm from "./AdminNewsDashboardAdm";
 import { TabButtonAdm } from "./Adminshared";
+import StudentHelp from "../StudentHelp/StudentHelp";
 
 export default function AdminDashboardAdm() {
   const [activeTab, setActiveTab] = useState("ggv");
@@ -40,6 +42,7 @@ export default function AdminDashboardAdm() {
   const [loading, setLoading] = useState(true);
 
   const [adminUser, setAdminUser] = useState(null);
+const [studentHelpTab, setStudentHelpTab] = useState("feedback");
 
   const blockStudent = async (uid) => {
     await updateDoc(doc(db, "users", uid), { blocked: true });
@@ -136,18 +139,50 @@ export default function AdminDashboardAdm() {
     loadAll();
   }, []);
 
-  const approveUser = async (uid) => {
-    await updateDoc(doc(db, "users", uid), { verified: true });
-    const user = pendingStudents.find((u) => u.id === uid);
-    setPendingStudents((p) => p.filter((u) => u.id !== uid));
-    setApprovedStudents((a) => [...a, { ...user, verified: true }]);
-  };
+const approveUser = async (uid) => {
+  const user = pendingStudents.find((u) => u.id === uid);
+  if (!user) return;
+
+  // 1️⃣ Update Firestore
+  await updateDoc(doc(db, "users", uid), {
+    verified: true,
+    status: "approved",
+    approvedAt: new Date(),
+  });
+
+  // 2️⃣ Send email to student
+  await sendStudentStatusEmail({
+    student_name: `${user.firstName} ${user.lastName}`,
+    student_email: user.email,
+    status: "approved",
+  });
+
+  // 3️⃣ Update UI
+  setPendingStudents((p) => p.filter((u) => u.id !== uid));
+  setApprovedStudents((a) => [...a, { ...user, verified: true }]);
+};
+
 
   const rejectUser = async (uid) => {
-    if (!confirm("Reject and delete this application?")) return;
-    await deleteDoc(doc(db, "users", uid));
-    setPendingStudents((p) => p.filter((u) => u.id !== uid));
-  };
+  const user = pendingStudents.find((u) => u.id === uid);
+  if (!user) return;
+
+  if (!confirm("Reject and delete this application?")) return;
+
+  // 1️⃣ Send rejection email FIRST
+  await sendStudentStatusEmail({
+    student_name: `${user.firstName} ${user.lastName}`,
+    student_email: user.email,
+    status: "rejected",
+  });
+
+  // 2️⃣ Delete Firestore doc
+  await deleteDoc(doc(db, "users", uid));
+
+  // 3️⃣ Update UI
+  setPendingStudents((p) => p.filter((u) => u.id !== uid));
+};
+
 
   if (loading) return <p className="p-6">Loading…</p>;
 
@@ -193,6 +228,13 @@ export default function AdminDashboardAdm() {
         >
           News Dashboard
         </TabButtonAdm>
+        <TabButtonAdm
+  active={activeTab === "studentHelp"}
+  onClick={() => setActiveTab("studentHelp")}
+>
+  Student Help
+</TabButtonAdm>
+
       </div>
 
       <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -239,6 +281,9 @@ export default function AdminDashboardAdm() {
             loadStudentPosts={loadStudentPosts}
           />
         )}
+        {activeTab === "studentHelp" && (<StudentHelp role="admin" />
+)}
+
       </div>
 
       {/* FULLSCREEN IMAGE */}

@@ -11,8 +11,12 @@ import AdminDashboardAdm from "./pages/AdminPage/AdminDashboardAdm.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import RequiredVerified from "./verification/RequiredVerified";
+import StudentHelp from "./pages/StudentHelp/StudentHelp";
+import { useAuth } from "./context/AuthContext";
 
 export default function App() {
+  const { user, role } = useAuth(); // ✅ get role from context
+
   return (
     <Routes>
       {/* Public */}
@@ -67,7 +71,20 @@ export default function App() {
         }
       />
 
+      {/* ✅ STUDENT HELP (FIXED)
+      <Route
+        path="/student-help"
+        element={
+          <ProtectedRoute>
+            <RequiredVerified>
+              <StudentHelp role={role} />
+            </RequiredVerified>
+          </ProtectedRoute>
+        }
+      /> */}
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
+

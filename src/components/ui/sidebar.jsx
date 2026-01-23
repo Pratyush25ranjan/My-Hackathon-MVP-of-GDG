@@ -62,3 +62,26 @@ export function SidebarGroupLabel({ children }) {
     </div>
   );
 }
+
+export function SidebarTopNav({ children }) {
+  return (
+    <div className="flex gap-2 p-3 border-b bg-muted/30">
+      {children}
+    </div>
+  );
+}
+
+export function SidebarTopNavItem({ children, isActive, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-md text-sm transition-colors ${
+        isActive
+          ? "bg-primary text-primary-foreground"
+          : "bg-background text-muted-foreground hover:bg-muted"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
