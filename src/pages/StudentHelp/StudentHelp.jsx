@@ -9,8 +9,7 @@ const StudentHelp = ({ role }) => {
 
   return (
     <div className="space-y-6">
-      {/* 🔹 TOP SUB-TABS BAR (LIKE IMAGE) */}
-      <div className="flex gap-3 px-6 py-3 bg-background border-b">
+      <div className="flex gap-3 px-6 py-3 rounded-lg bg-black/40 border border-green-400 shadow-[0_0_15px_rgba(34,197,94,0.35)]">
         <Button
           variant={activeTab === "feedback" ? "default" : "outline"}
           onClick={() => setActiveTab("feedback")}
@@ -33,22 +32,21 @@ const StudentHelp = ({ role }) => {
         </Button>
       </div>
 
-      {/* 🔹 CONTENT AREA (LIKE STUDENT CARDS AREA) */}
       <div className="px-6">
         {activeTab === "feedback" && (
-          <div className="bg-background border rounded-lg p-6">
+          <div className="bg-black/40 border border-green-400 rounded-lg p-6 shadow-[0_0_20px_rgba(34,197,94,0.35)]">
             <FeedbackComplaints role={role} />
           </div>
         )}
 
         {activeTab === "lost" && (
-          <div className="bg-background border rounded-lg p-6">
+          <div className="bg-black/40 border border-green-400 rounded-lg p-6 shadow-[0_0_20px_rgba(34,197,94,0.35)]">
             <LostAndFound role={role} />
           </div>
         )}
 
         {activeTab === "study" && (
-          <div className="bg-background border rounded-lg p-6">
+          <div className="bg-black/40 border border-green-400 rounded-lg p-6 shadow-[0_0_20px_rgba(34,197,94,0.35)]">
             <StudyMaterials role={role} />
           </div>
         )}

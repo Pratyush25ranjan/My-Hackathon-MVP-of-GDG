@@ -9,18 +9,17 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { auth, db } from "../../services/firebase";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import DarkCard from "../../components/ui/DarkCard";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { Input } from "../../components/ui/input";
 import { compressImage } from "../StudentPage/shared";
 
-export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage }) {
+export default function AdmClubCommunity({
+  posts,
+  adminUser,
+  setFullscreenImage,
+}) {
   const [club, setClub] = useState("all");
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState(null);
@@ -28,14 +27,13 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
   const [editingId, setEditingId] = useState(null);
   const [originalImage, setOriginalImage] = useState(null);
 
-  // Only this admin's posts, optionally filtered by club
+  /* ---------------- FILTER POSTS ---------------- */
   const filtered = posts.filter((p) => {
     const isMine = p.authorUid === auth.currentUser?.uid;
     if (!isMine) return false;
 
     if (club === "all") return true;
-    const postClub = (p.club || "").toLowerCase();
-    return postClub === club;
+    return (p.club || "").toLowerCase() === club;
   });
 
   const resetForm = () => {
@@ -43,24 +41,21 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
     setPostImage(null);
     setOriginalImage(null);
     setEditingId(null);
+    setClub("all");
   };
 
+  /* ---------------- CREATE / UPDATE ---------------- */
   const handleCreateOrUpdate = async () => {
-    if (!postText.trim()) return;
-    if (!adminUser) return;
+    if (!postText.trim() || !adminUser) return;
     if (club === "all") {
-      alert("Please select a club before creating a post.");
+      alert("Please select a club.");
       return;
     }
 
     let image = originalImage || null;
-
-    if (postImage) {
-      image = await compressImage(postImage);
-    }
+    if (postImage) image = await compressImage(postImage);
 
     if (editingId) {
-      // update existing post
       await updateDoc(doc(db, "posts", editingId), {
         text: postText,
         image,
@@ -68,7 +63,6 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
         updatedAt: serverTimestamp(),
       });
     } else {
-      // create new post
       await addDoc(collection(db, "posts"), {
         text: postText,
         image,
@@ -79,7 +73,7 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
         authorDept: (adminUser.department || "").toLowerCase(),
         authorYear: adminUser.year || "",
         authorRole: "admin",
-        club: club, // "nex" | "gdgc" | "gfg"
+        club,
         scope: "clubs",
         createdAt: serverTimestamp(),
         likes: [],
@@ -104,32 +98,26 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
 
   return (
     <div className="space-y-6">
-      {/* create / edit club post */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {editingId ? "Edit Club Post" : "Create Club Post"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs text-muted-foreground block">
-              Select Club
-            </label>
-            <select
-              className="border p-2 rounded w-full"
-              value={club}
-              onChange={(e) => setClub(e.target.value)}
-            >
-              <option value="all">-- Select Club --</option>
-              <option value="nex">Nexus</option>
-              <option value="gdgc">GDGC</option>
-              <option value="gfg">GFG</option>
-            </select>
-          </div>
+      {/* CREATE / EDIT */}
+      <DarkCard>
+        <h2 className="text-lg font-semibold mb-3">
+          {editingId ? "Edit Club Post" : "Create Club Post"}
+        </h2>
+
+        <div className="space-y-3">
+          <select
+            className="w-full rounded bg-zinc-900 border border-white/20 p-2 text-white"
+            value={club}
+            onChange={(e) => setClub(e.target.value)}
+          >
+            <option value="all">-- Select Club --</option>
+            <option value="nex">Nexus</option>
+            <option value="gdgc">GDGC</option>
+            <option value="gfg">GFG</option>
+          </select>
 
           <Textarea
-            placeholder="Write an announcement or update for this club..."
+            placeholder="Write an update for this club..."
             value={postText}
             onChange={(e) => setPostText(e.target.value)}
           />
@@ -140,11 +128,10 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
             onChange={(e) => setPostImage(e.target.files?.[0] || null)}
           />
 
-          {/* show current image while editing */}
           {editingId && originalImage && (
             <img
               src={originalImage}
-              className="max-h-40 rounded border"
+              className="max-h-40 rounded border border-white/20"
               alt="current"
             />
           )}
@@ -153,25 +140,23 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
             <Button onClick={handleCreateOrUpdate} className="flex-1">
               {editingId ? "Update Post" : "Create Post"}
             </Button>
+
             {editingId && (
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={resetForm}
-              >
+              <Button variant="outline" className="flex-1" onClick={resetForm}>
                 Cancel
               </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </DarkCard>
 
-      {/* list of my posts */}
+      {/* MY POSTS */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-lg">My Club Posts</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold">My Club Posts</h2>
+
           <select
-            className="border p-2 rounded"
+            className="rounded bg-black/40 border border-white/20 p-2 text-white"
             value={club}
             onChange={(e) => setClub(e.target.value)}
           >
@@ -183,58 +168,53 @@ export default function AdmClubCommunity({ posts, adminUser, setFullscreenImage 
         </div>
 
         {filtered.map((p) => (
-          <Card key={p.id}>
-            <CardContent className="px-5 py-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {(p.authorProfileImageBase64 || p.authorPhoto) && (
-                    <img
-                      src={p.authorProfileImageBase64 || p.authorPhoto}
-                      alt="author"
-                      className="w-5 h-5 rounded-full object-cover border border-border"
-                    />
-                  )}
-                  <p className="font-medium">
-                    {p.authorEmail} •{" "}
-                    <span className="text-xs uppercase text-muted-foreground">
-                      {p.club || "No club tag"}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(p)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(p.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
+          <DarkCard key={p.id}>
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center gap-3">
+                {(p.authorProfileImageBase64 || p.authorPhoto) && (
+                  <img
+                    src={p.authorProfileImageBase64 || p.authorPhoto}
+                    className="w-6 h-6 rounded-full object-cover border border-white/20"
+                    alt="author"
+                  />
+                )}
+                <p className="text-sm">
+                  {p.authorEmail} •{" "}
+                  <span className="uppercase text-xs text-white/60">
+                    {p.club}
+                  </span>
+                </p>
               </div>
 
-              <p>{p.text}</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => handleEdit(p)}>
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleDelete(p.id)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
 
-              {p.image && (
-                <img
-                  src={p.image}
-                  className="max-h-64 rounded cursor-pointer"
-                  onClick={() => setFullscreenImage(p.image)}
-                />
-              )}
-            </CardContent>
-          </Card>
+            <p className="text-white/90">{p.text}</p>
+
+            {p.image && (
+              <img
+                src={p.image}
+                className="mt-3 max-h-64 rounded cursor-pointer"
+                onClick={() => setFullscreenImage(p.image)}
+                alt="post"
+              />
+            )}
+          </DarkCard>
         ))}
 
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/60">
             No posts yet for this club.
           </p>
         )}

@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { auth, db } from "../../services/firebase";
 import { Button } from "../../components/ui/button";
 import { compressImage } from "../StudentPage/shared";
+import { updateDoc } from "firebase/firestore";
 
 const LostAndFound = () => {
   const navigate = useNavigate();
@@ -36,7 +37,9 @@ const LostAndFound = () => {
   const [allPosts, setAllPosts] = useState([]);
   const [myPosts, setMyPosts] = useState([]);
   const [userCache, setUserCache] = useState({});
-
+const [editingId, setEditingId] = useState(null);
+const [editDescription, setEditDescription] = useState("");
+const [editImage, setEditImage] = useState(null);
   // image compress
   const handleImageChange = async (file) => {
     if (!file) return;
@@ -44,6 +47,15 @@ const LostAndFound = () => {
     setImage(compressed);
     setPreview(compressed);
   };
+const saveEdit = async (id) => {
+  const data = { description: editDescription };
+  if (editImage) data.image = editImage;
+
+  await updateDoc(doc(db, "lostAndFound", id), data);
+
+  setEditingId(null);
+  setEditImage(null);
+};
 
   // submit
   const submitItem = async () => {
@@ -121,19 +133,19 @@ const LostAndFound = () => {
 
   // my posts
   useEffect(() => {
-  if (!auth.currentUser) return;
+    if (!auth.currentUser) return;
 
-  const q = query(
-    collection(db, "lostAndFound"),
-    where("studentUid", "==", auth.currentUser.uid)
-  );
+    const q = query(
+      collection(db, "lostAndFound"),
+      where("studentUid", "==", auth.currentUser.uid)
+    );
 
-  const unsub = onSnapshot(q, (snap) => {
-    setMyPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-  });
+    const unsub = onSnapshot(q, (snap) => {
+      setMyPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
 
-  return () => unsub();
-}, []);
+    return () => unsub();
+  }, []);
 
 
   const deletePost = async (id) => {
@@ -178,33 +190,29 @@ const LostAndFound = () => {
           </div>
 
           <input
-            className="w-full border p-2 rounded"
+            className="w-full border border-white/20 bg-zinc-900 text-white placeholder-white/50 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
             placeholder="Item name"
             value={itemName}
             onChange={(e) => setItemName(e.target.value)}
           />
-
           <textarea
-            className="w-full border p-2 rounded min-h-[100px]"
+            className="w-full border border-white/20 bg-zinc-900 text-white placeholder-white/50 p-2 rounded min-h-[100px] focus:outline-none focus:ring-2 focus:ring-green-400"
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-
           <input
-            className="w-full border p-2 rounded"
+            className="w-full border border-white/20 bg-zinc-900 text-white placeholder-white/50 p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
             placeholder="Location"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
-
           <input
             type="date"
-            className="w-full border p-2 rounded"
+            className="w-full border border-white/20 bg-zinc-900 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
-
           <input
             type="file"
             accept="image/*"
@@ -276,25 +284,107 @@ const LostAndFound = () => {
       )}
 
       {/* MY POSTS */}
-      {activeTab === "mine" && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {myPosts.map((p) => (
-            <div key={p.id} className="border rounded-lg p-4 space-y-2">
-              <h3 className="font-semibold">
-                {p.itemName} ({p.type})
-              </h3>
-              <p>{p.description}</p>
+{activeTab === "mine" && (
+  <div className="grid md:grid-cols-2 gap-4">
+    {myPosts.map((p) => (
+      <div
+        key={p.id}
+        className="border rounded-lg p-4 space-y-3 bg-black text-white"
+      >
+        <h3 className="font-semibold">
+          {p.itemName} ({p.type})
+        </h3>
+
+        {/* EDIT MODE */}
+        {editingId === p.id ? (
+          <>
+            <textarea
+              className="
+                w-full
+                bg-black
+                text-white
+                border border-white/20
+                rounded
+                p-2
+                min-h-[100px]
+              "
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+            />
+
+            <input
+              type="file"
+              accept="image/*"
+              className="text-white"
+              onChange={async (e) => {
+                const img = await compressImage(e.target.files[0]);
+                setEditImage(img);
+              }}
+            />
+
+            {editImage && (
+              <img
+                src={editImage}
+                className="h-28 rounded border border-white/20"
+                alt="preview"
+              />
+            )}
+
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => saveEdit(p.id)}>
+                Save
+              </Button>
 
               <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditingId(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p>{p.description}</p>
+
+            {/* ✅ IMAGE NOW VISIBLE */}
+            {p.image && (
+              <img
+                src={p.image}
+                className="h-28 rounded border border-white/20 cursor-pointer"
+                onClick={() => setZoomImage(p.image)}
+                alt="lost-found"
+              />
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingId(p.id);
+                  setEditDescription(p.description);
+                  setEditImage(null);
+                }}
+              >
+                Edit
+              </Button>
+
+              <Button
+                size="sm"
                 variant="destructive"
                 onClick={() => deletePost(p.id)}
               >
                 Delete
               </Button>
             </div>
-          ))}
-        </div>
-      )}
+          </>
+        )}
+      </div>
+    ))}
+  </div>
+)}
+
 
       {/* IMAGE ZOOM */}
       {zoomImage && (

@@ -1,58 +1,72 @@
+// src/pages/StuHelp/Help.jsx
 import { useState } from "react";
 import FeedbackComplaints from "./FeedbackCumComplaints";
 import LostAndFound from "./LostFoundStuPage";
 import StudyMaterials from "./StudyStuff";
-import { Button } from "../../components/ui/button";
+import DarkCard from "../../components/ui/DarkCard";
 
 export default function Help({ role }) {
   const [activeTab, setActiveTab] = useState("feedback");
 
   return (
     <div className="space-y-6">
-      {/* SUB-TABS */}
-      <div className="flex gap-3 px-6 py-3 bg-background border-b">
-        <Button
-          variant={activeTab === "feedback" ? "default" : "outline"}
-          onClick={() => setActiveTab("feedback")}
-        >
-          Feedback & Complaints
-        </Button>
 
-        <Button
-          variant={activeTab === "lost" ? "default" : "outline"}
-          onClick={() => setActiveTab("lost")}
-        >
-          Lost & Found
-        </Button>
+      {/* SUB TABS */}
+      <DarkCard>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setActiveTab("feedback")}
+            className={`px-4 py-2 rounded-md text-sm transition ${
+              activeTab === "feedback"
+                ? "bg-green-500 text-black"
+                : "bg-black/40 text-white hover:bg-white/10"
+            }`}
+          >
+            Feedback & Complaints
+          </button>
 
-        <Button
-          variant={activeTab === "study" ? "default" : "outline"}
-          onClick={() => setActiveTab("study")}
-        >
-          Study Materials
-        </Button>
-      </div>
+          <button
+            onClick={() => setActiveTab("lost")}
+            className={`px-4 py-2 rounded-md text-sm transition ${
+              activeTab === "lost"
+                ? "bg-green-500 text-black"
+                : "bg-black/40 text-white hover:bg-white/10"
+            }`}
+          >
+            Lost & Found
+          </button>
+
+          <button
+            onClick={() => setActiveTab("study")}
+            className={`px-4 py-2 rounded-md text-sm transition ${
+              activeTab === "study"
+                ? "bg-green-500 text-black"
+                : "bg-black/40 text-white hover:bg-white/10"
+            }`}
+          >
+            Study Materials
+          </button>
+        </div>
+      </DarkCard>
 
       {/* CONTENT */}
-      <div className="px-6">
-        {activeTab === "feedback" && (
-          <div className="bg-background border rounded-lg p-6">
-            <FeedbackComplaints role={role} />
-          </div>
-        )}
+      {activeTab === "feedback" && (
+        <DarkCard>
+          <FeedbackComplaints role={role} />
+        </DarkCard>
+      )}
 
-        {activeTab === "lost" && (
-          <div className="bg-background border rounded-lg p-6">
-            <LostAndFound role={role} />
-          </div>
-        )}
+      {activeTab === "lost" && (
+        <DarkCard>
+          <LostAndFound role={role} />
+        </DarkCard>
+      )}
 
-        {activeTab === "study" && (
-          <div className="bg-background border rounded-lg p-6">
-            <StudyMaterials role={role} />
-          </div>
-        )}
-      </div>
+      {activeTab === "study" && (
+        <DarkCard>
+          <StudyMaterials role={role} />
+        </DarkCard>
+      )}
     </div>
   );
 }

@@ -31,5 +31,3 @@ googleProvider.addScope("profile");
 googleProvider.addScope("email");
 
 console.log("✅ Firebase initialized with Google OAuth support");
-console.log("AUTH DOMAIN (runtime):", auth.config.authDomain);
-console.log("AUTH DOMAIN (runtime):", import.meta.env.VITE_FIREBASE_AUTH_DOMAIN);

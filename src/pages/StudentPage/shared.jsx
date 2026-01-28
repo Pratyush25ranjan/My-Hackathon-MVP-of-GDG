@@ -8,10 +8,9 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
 import { improvePost, summarizePost } from "../../services/gemini";
 
-/* image compression */
+/* ================= IMAGE COMPRESSION ================= */
 export const compressImage = (file, maxWidth = 1000, quality = 0.8) =>
   new Promise((resolve, reject) => {
     if (!file) {
@@ -51,6 +50,7 @@ export const compressImage = (file, maxWidth = 1000, quality = 0.8) =>
     img.onerror = () => reject(new Error("Failed to load image"));
   });
 
+/* ================= TAB BUTTON ================= */
 export function TabButton({ active, children, className = "", ...props }) {
   return (
     <button
@@ -66,6 +66,7 @@ export function TabButton({ active, children, className = "", ...props }) {
   );
 }
 
+/* ================= COMMENTS ================= */
 export function Comments({ postId }) {
   const [comments, setComments] = useState([]);
   const [text, setText] = useState("");
@@ -95,19 +96,38 @@ export function Comments({ postId }) {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="mt-4 space-y-3 bg-black/40 border border-white/10 rounded-lg p-3">
+      {/* COMMENTS LIST */}
       {comments.map((c) => (
-        <p key={c.id} className="text-xs">
-          <b>{c.authorEmail}</b>: {c.text}
+        <p key={c.id} className="text-xs text-gray-200">
+          <span className="font-semibold text-white">
+            {c.authorEmail}
+          </span>
+          : {c.text}
         </p>
       ))}
 
-      <div className="flex gap-1">
-        <Input
-          placeholder="Comment"
+      {/* COMMENT INPUT */}
+      <div className="flex gap-2">
+        <input
           value={text}
           onChange={(e) => setText(e.target.value)}
+          placeholder="Write a comment..."
+          className="
+            flex-1
+            bg-black
+            text-white
+            border border-white/20
+            rounded-md
+            px-3 py-2
+            text-sm
+            placeholder-gray-400
+            focus:outline-none
+            focus:ring-2
+            focus:ring-green-500
+          "
         />
+
         <Button size="sm" onClick={addComment}>
           Send
         </Button>
@@ -116,14 +136,14 @@ export function Comments({ postId }) {
   );
 }
 
-// Reusable fullscreen image viewer
+/* ================= FULLSCREEN IMAGE VIEWER ================= */
 export function useImageViewer() {
   const [fullscreenImage, setFullscreenImage] = useState(null);
 
   const ImageModal = () =>
     fullscreenImage ? (
       <div
-        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+        className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center overflow-auto"
         onClick={() => setFullscreenImage(null)}
       >
         <img

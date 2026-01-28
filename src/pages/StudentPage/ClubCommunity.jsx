@@ -1,11 +1,6 @@
 // src/pages/StudentPage/ClubCommunity.jsx
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
+import DarkCard from "../../components/ui/DarkCard";
 import { summarizePost } from "../../services/gemini";
 import AIResultModal from "../../components/AIResultModal";
 import { useState } from "react";
@@ -26,7 +21,6 @@ export default function ClubCommunity({
   dept,
   setDept,
 }) {
-  // Filter by club field
   const filteredPosts = posts.filter((p) => {
     if (dept === "all") return true;
     const postClub = (p.club || "").toLowerCase();
@@ -36,20 +30,21 @@ export default function ClubCommunity({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryText, setSummaryText] = useState("");
 
-  // fullscreen image hook
   const { setFullscreenImage, ImageModal } = useImageViewer();
 
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        <div className="lg:col-span-2 space-y-4">
-          {/* club filter */}
-          <div className="border p-2 rounded bg-background">
-            <label className="text-xs text-muted-foreground block mb-1">
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* CLUB FILTER */}
+          <DarkCard>
+            <label className="text-sm mb-2 block text-gray-300">
               Filter by Club
             </label>
+
             <select
-              className="border p-2 rounded w-full"
+              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-white"
               value={dept}
               onChange={(e) => setDept(e.target.value)}
             >
@@ -58,93 +53,87 @@ export default function ClubCommunity({
               <option value="gdgc">GDGC</option>
               <option value="gfg">GFG</option>
             </select>
-          </div>
+          </DarkCard>
 
+          {/* POSTS */}
           {filteredPosts.map((post) => (
-            <Card key={post.id}>
-              <CardHeader>
-                <div
-                  className="flex items-center gap-3 cursor-pointer"
-                  onClick={() => navigate(`/chat/${post.authorUid}`)}
-                >
-                  {post.authorProfileImageBase64 ? (
-                    <img
-                      src={post.authorProfileImageBase64}
-                      className="h-8 w-8 rounded-full object-cover hover:scale-110 transition"
-                      alt={post.authorEmail}
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                      {post.authorEmail[0].toUpperCase()}
-                    </div>
-                  )}
-
-                <div className="flex flex-col">
-  {post.club && (
-    <span className="text-xs md:text-sm uppercase font-bold text-black">
-      {CLUB_LABELS[post.club] || post.club}
-    </span>
-  )}
-  <CardTitle className="text-[11px] md:text-xs font-normal">
-    {post.authorEmail}
-  </CardTitle>
-</div>
-
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-2">
-                <p>{post.text}</p>
-
-                {post.image && (
+            <DarkCard key={post.id}>
+              <div
+                className="flex items-center gap-3 cursor-pointer mb-2"
+                onClick={() => navigate(`/chat/${post.authorUid}`)}
+              >
+                {post.authorProfileImageBase64 ? (
                   <img
-                    src={post.image}
-                    className="rounded max-h-64 cursor-pointer hover:scale-105 transition"
-                    onClick={() => setFullscreenImage(post.image)}
-                    alt="post"
+                    src={post.authorProfileImageBase64}
+                    className="h-8 w-8 rounded-full object-cover"
+                    alt=""
                   />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-zinc-700 flex items-center justify-center text-sm">
+                    {post.authorEmail[0].toUpperCase()}
+                  </div>
                 )}
 
-                <div className="flex gap-3 items-center">
-                  <button
-                    className="text-sm"
-                    onClick={() => toggleLike(post)}
-                  >
-                    ❤️ {post.likes?.length || 0}
-                  </button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      if (!post.text) return;
-                      const summary = await summarizePost(post.text);
-                      if (!summary) return;
-                      setSummaryText(summary);
-                      setSummaryOpen(true);
-                    }}
-                  >
-                    🧠 AI Summary
-                  </Button>
+                <div className="flex flex-col">
+                  {post.club && (
+                    <span className="text-xs uppercase font-semibold text-green-400">
+                      {CLUB_LABELS[post.club] || post.club}
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-300">
+                    {post.authorEmail}
+                  </span>
                 </div>
+              </div>
 
-                <Comments postId={post.id} />
-              </CardContent>
-            </Card>
+              <p className="mb-2">{post.text}</p>
+
+              {post.image && (
+                <img
+                  src={post.image}
+                  className="rounded max-h-64 cursor-pointer hover:scale-105 transition"
+                  onClick={() => setFullscreenImage(post.image)}
+                  alt=""
+                />
+              )}
+
+              <div className="flex gap-4 items-center mt-3">
+                <button
+                  className="text-sm"
+                  onClick={() => toggleLike(post)}
+                >
+                  ❤️ {post.likes?.length || 0}
+                </button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const summary = await summarizePost(post.text);
+                    if (!summary) return;
+                    setSummaryText(summary);
+                    setSummaryOpen(true);
+                  }}
+                >
+                  🧠 AI Summary
+                </Button>
+              </div>
+
+              <Comments postId={post.id} />
+            </DarkCard>
           ))}
         </div>
-
-        <AIResultModal
-          open={summaryOpen}
-          onClose={() => setSummaryOpen(false)}
-          title="Summarized Result by AI"
-          helper=""
-          text={summaryText}
-        />
       </div>
 
-      {/* fullscreen image modal */}
+      {/* AI Summary Modal */}
+      <AIResultModal
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        title="Summarized Result by AI"
+        text={summaryText}
+      />
+
+      {/* Fullscreen Image */}
       <ImageModal />
     </>
   );

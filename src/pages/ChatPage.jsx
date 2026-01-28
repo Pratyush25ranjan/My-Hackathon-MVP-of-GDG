@@ -11,32 +11,17 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import { explainForStudents, generateConversationResponse } from "../services/gemini";
+import { generateConversationResponse } from "../services/gemini";
 import { auth, db } from "../services/firebase";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Card, CardContent } from "../components/ui/card";
+import DarkCard from "../components/ui/DarkCard";
 
-/* ---------- LOCAL MESSAGE ---------- */
-function createLocalMessage({ text, image, sender, receiver, roomId }) {
-  return {
-    id: "local_" + Date.now(),
-    text,
-    image,
-    sender,
-    receiver,
-    roomId,
-    createdAt: { seconds: Date.now() / 1000 },
-    __local: true,
-  };
-}
-
-/* ---------- ROOM ID (SAFE) ---------- */
+/* ---------- HELPERS ---------- */
 function getRoomId(a, b) {
   return [a, b].sort().join("_");
 }
 
-/* ---------- TIME FORMAT ---------- */
 function formatMessageTime(ts) {
   if (!ts) return "";
   try {
@@ -49,7 +34,6 @@ function formatMessageTime(ts) {
   }
 }
 
-/* ---------- IMAGE COMPRESSION ---------- */
 const compressImage = (file) =>
   new Promise((resolve) => {
     const reader = new FileReader();
@@ -73,40 +57,7 @@ export default function ChatPage() {
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const bottomRef = useRef(null);
 
-  /* ---------- AI HELP MESSAGE (Improve with AI) ---------- */
-  const handleAIHelp = async () => {
-    if (!message.trim()) return;
-
-    try {
-      const aiResponse = await generateConversationResponse(
-        message,
-        user?.department || "CSE"
-      );
-
-      if (!aiResponse) return;
-
-      // Match your messages data structure
-      const newMessage = createLocalMessage({
-        text: aiResponse,
-        sender: "AI",
-        receiver: uid,
-        roomId: getRoomId(me.uid, uid),
-      });
-
-      setMessages((prev) => [...prev, newMessage]);
-      setMessage(""); // Clear input
-    } catch (err) {
-      console.error("AI conversation error:", err);
-    }
-  };
-
-  /* ---------- DEBUG (optional) ---------- */
-  useEffect(() => {
-    if (!me || !uid) return;
-    // console.log("ROOM ID:", getRoomId(me.uid, uid));
-  }, [me, uid]);
-
-  /* ---------- LOAD CHAT USER ---------- */
+  /* ---------- LOAD USER ---------- */
   useEffect(() => {
     if (!uid) return;
     getDoc(doc(db, "users", uid)).then(
@@ -125,10 +76,7 @@ export default function ChatPage() {
 
     const unsub = onSnapshot(q, (snap) => {
       const serverMsgs = snap.docs
-        .map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
+        .map((d) => ({ id: d.id, ...d.data() }))
         .filter(
           (m) =>
             m.participants?.includes(me.uid) &&
@@ -140,10 +88,9 @@ export default function ChatPage() {
         );
 
       setMessages(serverMsgs);
-      setTimeout(
-        () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
-        50
-      );
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
     });
 
     return () => unsub();
@@ -178,16 +125,6 @@ export default function ChatPage() {
     let image = null;
     if (imgFile) image = await compressImage(imgFile);
 
-    const localMsg = createLocalMessage({
-      text,
-      image,
-      sender: me.uid,
-      receiver: uid,
-      roomId,
-    });
-
-    setMessages((prev) => [...prev, localMsg]);
-
     await addDoc(collection(db, "messages"), {
       text,
       image,
@@ -202,10 +139,11 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-muted/40 p-6">
-      <div className="max-w-6xl mx-auto bg-background border rounded-lg flex">
-        {/* LEFT */}
-        <div className="w-1/4 border-r p-4 text-center space-y-4">
+    <div className="min-h-screen bg-zinc-900 text-white p-6">
+      <div className="max-w-6xl mx-auto flex gap-6">
+
+        {/* LEFT PROFILE */}
+        <DarkCard className="w-1/4 text-center space-y-4">
           <img
             src={user.profileImageBase64}
             className="h-24 w-24 rounded-full mx-auto cursor-pointer hover:scale-110 transition"
@@ -215,55 +153,47 @@ export default function ChatPage() {
             <p className="font-semibold">
               {user.firstName} {user.lastName}
             </p>
-            <p>
+            <p className="text-zinc-400">
               {user.department.toUpperCase()} • Year {user.year}
             </p>
-            <p className="text-muted-foreground">{user.email}</p>
+            <p className="text-zinc-500">{user.email}</p>
           </div>
-        </div>
+        </DarkCard>
 
         {/* RIGHT */}
-        <div className="w-3/4 p-4">
+        <DarkCard className="flex-1">
           {/* TABS */}
-          <div className="flex gap-4 mb-4">
-            <TabButton
-              active={tab === "messages"}
-              onClick={() => setTab("messages")}
-            >
+          <div className="flex gap-3 mb-4">
+            <TabButton active={tab === "messages"} onClick={() => setTab("messages")}>
               Messages
             </TabButton>
-            <TabButton
-              active={tab === "posts"}
-              onClick={() => setTab("posts")}
-            >
-              Posts by @{user.firstName}
+            <TabButton active={tab === "posts"} onClick={() => setTab("posts")}>
+              Posts
             </TabButton>
           </div>
 
           {/* MESSAGES */}
           {tab === "messages" && (
             <>
-              <div className="h-80 overflow-y-auto space-y-2 mb-3">
+              <div className="h-80 overflow-y-auto space-y-2 mb-4">
                 {messages.map((m) => (
                   <div
                     key={m.id}
-                    className={`p-2 rounded max-w-xs text-sm ${
+                    className={`p-2 rounded-lg max-w-xs text-sm ${
                       m.sender === me.uid
-                        ? "ml-auto bg-primary text-primary-foreground"
-                        : m.sender === "AI"
-                        ? "ml-auto bg-amber-100 text-black"
-                        : "bg-muted"
+                        ? "ml-auto bg-green-500/20 border border-green-400"
+                        : "bg-zinc-800 border border-white/10"
                     }`}
                   >
                     {m.text && <p>{m.text}</p>}
                     {m.image && (
                       <img
                         src={m.image}
-                        className="mt-2 rounded max-w-[200px] cursor-pointer hover:scale-105 transition"
+                        className="mt-2 rounded cursor-pointer"
                         onClick={() => setFullscreenImage(m.image)}
                       />
                     )}
-                    <span className="block text-[10px] opacity-70 mt-1">
+                    <span className="block text-[10px] opacity-60 mt-1">
                       {formatMessageTime(m.createdAt)}
                     </span>
                   </div>
@@ -271,15 +201,29 @@ export default function ChatPage() {
                 <div ref={bottomRef} />
               </div>
 
+              {/* INPUT ROW */}
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={handleAIHelp}>
-                  ✨ Improve with AI
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    const ai = await generateConversationResponse(
+                      message,
+                      user.department
+                    );
+                    if (ai) setMessage(ai);
+                  }}
+                >
+                  ✨ AI
                 </Button>
+
+                {/* 🔥 FIXED INPUT (TEXT VISIBILITY) */}
                 <Input
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Type a message..."
+                  className="!text-black !caret-black placeholder:text-gray-400"
                 />
+
                 <Input
                   type="file"
                   accept="image/*"
@@ -287,6 +231,7 @@ export default function ChatPage() {
                     setChatImage(e.target.files?.[0] || null)
                   }
                 />
+
                 <Button onClick={sendMessage}>Send</Button>
               </div>
             </>
@@ -296,22 +241,20 @@ export default function ChatPage() {
           {tab === "posts" && (
             <div className="space-y-4">
               {posts.map((p) => (
-                <Card key={p.id}>
-                  <CardContent className="p-3">
-                    <p>{p.text}</p>
-                    {p.image && (
-                      <img
-                        src={p.image}
-                        className="mt-2 rounded max-h-48 cursor-pointer hover:scale-105 transition"
-                        onClick={() => setFullscreenImage(p.image)}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+                <DarkCard key={p.id}>
+                  <p>{p.text}</p>
+                  {p.image && (
+                    <img
+                      src={p.image}
+                      className="mt-2 rounded cursor-pointer"
+                      onClick={() => setFullscreenImage(p.image)}
+                    />
+                  )}
+                </DarkCard>
               ))}
             </div>
           )}
-        </div>
+        </DarkCard>
       </div>
 
       {/* FULLSCREEN IMAGE */}
@@ -336,10 +279,10 @@ function TabButton({ active, children, ...props }) {
   return (
     <button
       {...props}
-      className={`px-4 py-2 rounded ${
+      className={`px-4 py-2 rounded-lg text-sm transition ${
         active
-          ? "bg-primary text-primary-foreground"
-          : "bg-muted text-muted-foreground"
+          ? "bg-green-500/20 border border-green-400"
+          : "bg-zinc-800 border border-white/10 text-zinc-300"
       }`}
     >
       {children}

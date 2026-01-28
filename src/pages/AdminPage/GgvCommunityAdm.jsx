@@ -1,4 +1,4 @@
-import { Card, CardContent } from "../../components/ui/card";
+import DarkCard from "../../components/ui/DarkCard";
 
 export default function GgvCommunityAdm({
   posts,
@@ -8,33 +8,36 @@ export default function GgvCommunityAdm({
   return (
     <>
       {posts.map((p) => (
-        <Card key={p.id}>
-          <CardContent className="px-5 py-6 space-y-3">
-            <div
-              className="flex items-center gap-3 cursor-pointer"
-              onClick={() => openReviewFromPost(p)}
-            >
-              {(p.authorProfileImageBase64 || p.authorPhoto) && (
-                <img
-                  src={p.authorProfileImageBase64 || p.authorPhoto}
-                  alt="author"
-                  className="w-5 h-5 rounded-full object-cover border border-border"
-                />
-              )}
-              <p className="font-medium">{p.authorEmail}</p>
-            </div>
-
-            <p>{p.text}</p>
-
-            {p.image && (
+        <DarkCard key={p.id} className="space-y-3">
+          
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => openReviewFromPost(p)}
+          >
+            {(p.authorProfileImageBase64 || p.authorPhoto) && (
               <img
-                src={p.image}
-                className="max-h-64 rounded cursor-pointer"
-                onClick={() => setFullscreenImage(p.image)}
+                src={p.authorProfileImageBase64 || p.authorPhoto}
+                alt="author"
+                className="w-6 h-6 rounded-full object-cover border border-white/20"
               />
             )}
-          </CardContent>
-        </Card>
+            <p className="font-medium text-white">
+              {p.authorEmail}
+            </p>
+          </div>
+
+          <p className="text-white/90">{p.text}</p>
+
+          {p.image && (
+            <img
+              src={p.image}
+              className="max-h-64 rounded cursor-pointer hover:scale-[1.02] transition"
+              onClick={() => setFullscreenImage(p.image)}
+              alt="post"
+            />
+          )}
+
+        </DarkCard>
       ))}
     </>
   );

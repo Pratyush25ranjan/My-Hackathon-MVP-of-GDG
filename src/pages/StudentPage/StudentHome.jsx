@@ -1,5 +1,9 @@
+// src/pages/StudentPage/StudentHome.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import DashboardLayout from "../../components/layout/DashboardLayout";
+
 import {
   collection,
   addDoc,
@@ -15,9 +19,10 @@ import {
   serverTimestamp,
   orderBy,
 } from "firebase/firestore";
-import { improvePost, summarizePost } from "../../services/gemini";
+
 import { auth, db } from "../../services/firebase";
-import { TabButton, Comments, compressImage } from "./shared";
+import { Comments, compressImage } from "./shared";
+
 import GgvCommunity from "./GgvCommunity";
 import DeptCommunity from "./DeptCommunity";
 import ClubCommunity from "./ClubCommunity";
@@ -28,7 +33,13 @@ import Help from "../StuHelp/Help";
 export default function StudentHome() {
   const navigate = useNavigate();
 
-  // admin redirect
+  /* LOGOUT */
+  const handleLogout = async () => {
+    await auth.signOut();
+    navigate("/login");
+  };
+
+  /* ADMIN REDIRECT */
   useEffect(() => {
     const checkAdmin = async () => {
       const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
@@ -39,6 +50,7 @@ export default function StudentHome() {
     checkAdmin();
   }, [navigate]);
 
+  /* STATE */
   const [tab, setTab] = useState("ggv");
   const [posts, setPosts] = useState([]);
   const [students, setStudents] = useState([]);
@@ -51,10 +63,11 @@ export default function StudentHome() {
   const [search, setSearch] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [filterYear, setFilterYear] = useState("");
+
   const [news, setNews] = useState([]);
   const [dept, setDept] = useState("all");
 
-  // load user
+  /* LOAD USER */
   useEffect(() => {
     const loadUser = async () => {
       const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
@@ -68,7 +81,7 @@ export default function StudentHome() {
     loadUser();
   }, []);
 
-  // news
+  /* NEWS */
   useEffect(() => {
     const qNews = query(collection(db, "news"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(qNews, (snap) => {
@@ -77,11 +90,12 @@ export default function StudentHome() {
     return () => unsub();
   }, []);
 
-  // posts (GGV + Dept + Clubs)
+  /* POSTS */
   useEffect(() => {
     if (!userDept) return;
 
     let qPosts;
+
     if (tab === "ggv") {
       qPosts = query(collection(db, "posts"), where("scope", "==", "ggv"));
     } else if (tab === "dept") {
@@ -91,7 +105,6 @@ export default function StudentHome() {
         where("department", "==", userDept)
       );
     } else if (tab === "clubs") {
-      // Only posts created by admin for Club Community
       qPosts = query(
         collection(db, "posts"),
         where("authorRole", "==", "admin")
@@ -100,8 +113,8 @@ export default function StudentHome() {
       return;
     }
 
-    const unsubscribe = onSnapshot(qPosts, (snapshot) => {
-      const livePosts = snapshot.docs
+    const unsub = onSnapshot(qPosts, (snap) => {
+      const livePosts = snap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
         .sort(
           (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
@@ -109,31 +122,31 @@ export default function StudentHome() {
       setPosts(livePosts);
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [tab, userDept]);
 
-  // students
+  /* STUDENTS */
   useEffect(() => {
     if (tab !== "students") return;
+
     const loadStudents = async () => {
       const snap = await getDocs(
         query(collection(db, "users"), where("verified", "==", true))
       );
+
       setStudents(
-        snap.docs.map((d) => {
-          const u = d.data();
-          return {
-            id: d.id,
-            ...u,
-            department: (u.department || "").toLowerCase(),
-          };
-        })
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+          department: (d.data().department || "").toLowerCase(),
+        }))
       );
     };
+
     loadStudents();
   }, [tab]);
 
-  // create post (for GGV and Dept tabs)
+  /* CREATE POST */
   const createPost = async () => {
     if (!postText.trim() || !user) return;
 
@@ -146,10 +159,9 @@ export default function StudentHome() {
       authorUid: auth.currentUser.uid,
       authorEmail: user.email,
       authorProfileImageBase64: user.profileImageBase64 || null,
-      authorName: `${user.firstName} ${user.lastName}`,
       authorDept: user.department,
       authorYear: user.year,
-      scope: tab, // "ggv" or "dept"
+      scope: tab,
       department: user.department,
       createdAt: serverTimestamp(),
       likes: [],
@@ -159,9 +171,11 @@ export default function StudentHome() {
     setPostImage(null);
   };
 
+  /* LIKE */
   const toggleLike = async (post) => {
     const ref = doc(db, "posts", post.id);
     const uid = auth.currentUser.uid;
+
     if (post.likes.includes(uid)) {
       await updateDoc(ref, { likes: arrayRemove(uid) });
     } else {
@@ -172,53 +186,44 @@ export default function StudentHome() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      {/* top bar */}
-      <div className="flex justify-between items-center px-6 py-4 bg-background border-b">
-        <h1 className="font-bold text-xl">CampusConnect</h1>
-        <div
-          className="flex items-center gap-3 cursor-pointer"
-          onClick={() => navigate("/profile")}
-        >
-          {user.profileImageBase64 ? (
-            <img
-              src={user.profileImageBase64}
-              className="h-9 w-9 rounded-full object-cover"
-            />
-          ) : (
-            <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-              {user.email[0].toUpperCase()}
-            </div>
-          )}
-          <span className="text-sm">{user.email}</span>
+    <DashboardLayout
+      title="CampusConnect"
+      sidebarItems={[
+        { key: "ggv", label: "GGV Community" },
+        { key: "dept", label: "Department Community" },
+        { key: "clubs", label: "Club Community" },
+        { key: "students", label: "Students" },
+        { key: "news", label: "News Dashboard" },
+        { key: "help", label: "Help" },
+      ]}
+      activeTab={tab}
+      setActiveTab={setTab}
+      headerRight={
+  user && (
+    <div
+      onClick={() => navigate("/profile")}
+      className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+    >
+      {user.profileImageBase64 ? (
+        <img
+          src={user.profileImageBase64}
+          className="h-8 w-8 rounded-full object-cover"
+          alt="Profile"
+        />
+      ) : (
+        <div className="h-8 w-8 rounded-full bg-green-500 text-black flex items-center justify-center text-xs font-bold">
+          {user.email[0].toUpperCase()}
         </div>
-      </div>
+      )}
+      <span className="text-sm text-green-300">
+        {user.email}
+      </span>
+    </div>
+  )
+}
 
-      {/* tabs */}
-      <div className="flex gap-4 px-6 py-3 bg-background border-b">
-        <TabButton active={tab === "ggv"} onClick={() => setTab("ggv")}>
-          GGV Community
-        </TabButton>
-        <TabButton active={tab === "dept"} onClick={() => setTab("dept")}>
-          Department Community
-        </TabButton>
-        <TabButton active={tab === "clubs"} onClick={() => setTab("clubs")}>
-          Club Community
-        </TabButton>
-        <TabButton active={tab === "students"} onClick={() => setTab("students")}>
-          Students
-        </TabButton>
-        <TabButton active={tab === "news"} onClick={() => setTab("news")}>
-          News Dashboard
-        </TabButton>
-      <TabButton active={tab === "help"} onClick={() => setTab("help")}>
-  Help
-</TabButton>
-
-
-      </div>
-
-      {/* content */}
+      
+    >
       <div className="p-6">
         {tab === "ggv" && (
           <GgvCommunity
@@ -230,10 +235,6 @@ export default function StudentHome() {
             setPostImage={setPostImage}
             createPost={createPost}
             toggleLike={toggleLike}
-            improvePost={improvePost}
-            summarizePost={summarizePost}
-            dept={dept}
-            setDept={setDept}
             navigate={navigate}
             Comments={Comments}
           />
@@ -249,8 +250,6 @@ export default function StudentHome() {
             setPostImage={setPostImage}
             createPost={createPost}
             toggleLike={toggleLike}
-            improvePost={improvePost}
-            summarizePost={summarizePost}
             dept={dept}
             setDept={setDept}
             navigate={navigate}
@@ -261,7 +260,6 @@ export default function StudentHome() {
         {tab === "clubs" && (
           <ClubCommunity
             posts={posts}
-            user={user}
             toggleLike={toggleLike}
             navigate={navigate}
             Comments={Comments}
@@ -285,8 +283,7 @@ export default function StudentHome() {
 
         {tab === "news" && <NewsDashboard news={news} />}
         {tab === "help" && <Help role="student" />}
-
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

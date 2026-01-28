@@ -13,7 +13,7 @@ const FeedbackComplaints = ({ role }) => {
   const [loading, setLoading] = useState(false);
   const [zoomImage, setZoomImage] = useState(null);
 
-  // image select + compress
+  /* ---------------- IMAGE HANDLING ---------------- */
   const handleImageChange = async (file) => {
     if (!file) return;
     const compressed = await compressImage(file);
@@ -21,7 +21,7 @@ const FeedbackComplaints = ({ role }) => {
     setPreview(compressed);
   };
 
-  // submit feedback / complaint
+  /* ---------------- SUBMIT ---------------- */
   const submitFeedback = async () => {
     if (!auth.currentUser) {
       alert("You must be logged in.");
@@ -37,17 +37,17 @@ const FeedbackComplaints = ({ role }) => {
       setLoading(true);
 
       await addDoc(collection(db, "feedbackComplaints"), {
-        type, // feedback / complaint
+        type,
         title,
         description,
         image: image || null,
-        status: "pending", // pending | resolved (admin)
+        status: "pending",
         studentUid: auth.currentUser.uid,
         studentEmail: auth.currentUser.email,
         createdAt: serverTimestamp(),
+
       });
 
-      // reset form
       setType("feedback");
       setTitle("");
       setDescription("");
@@ -63,19 +63,21 @@ const FeedbackComplaints = ({ role }) => {
     }
   };
 
-  // ---------------- ADMIN PLACEHOLDER ----------------
+  /* ---------------- ADMIN PLACEHOLDER ---------------- */
   if (role !== "student") {
     return (
-      <div className="border rounded-lg p-4 text-muted-foreground">
+      <div className="bg-black text-white border border-white/20 rounded-lg p-4">
         Admin feedback management will be implemented next.
       </div>
     );
   }
 
-  // ---------------- STUDENT UI ----------------
+  /* ---------------- STUDENT UI ---------------- */
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Feedback & Complaints</h2>
+    <div className="bg-black text-white rounded-lg p-6 space-y-6 shadow max-w-3xl border border-white/10">
+      <h2 className="text-xl font-semibold">
+        Feedback & Complaints
+      </h2>
 
       {/* TYPE SELECT */}
       <div className="flex gap-3">
@@ -95,7 +97,18 @@ const FeedbackComplaints = ({ role }) => {
 
       {/* TITLE */}
       <input
-        className="w-full border rounded-md p-2"
+        className="
+          w-full
+          border border-white/20
+          rounded-md
+          p-2
+          bg-black
+          text-white
+          placeholder-gray-400
+          focus:outline-none
+          focus:ring-2
+          focus:ring-green-500
+        "
         placeholder="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -103,7 +116,19 @@ const FeedbackComplaints = ({ role }) => {
 
       {/* DESCRIPTION */}
       <textarea
-        className="w-full border rounded-md p-2 min-h-[120px]"
+        className="
+          w-full
+          border border-white/20
+          rounded-md
+          p-2
+          min-h-[120px]
+          bg-black
+          text-white
+          placeholder-gray-400
+          focus:outline-none
+          focus:ring-2
+          focus:ring-green-500
+        "
         placeholder="Describe your feedback or complaint..."
         value={description}
         onChange={(e) => setDescription(e.target.value)}
@@ -113,6 +138,7 @@ const FeedbackComplaints = ({ role }) => {
       <input
         type="file"
         accept="image/*"
+        className="text-white"
         onChange={(e) => handleImageChange(e.target.files[0])}
       />
 
@@ -122,10 +148,10 @@ const FeedbackComplaints = ({ role }) => {
           <img
             src={preview}
             alt="Preview"
-            className="h-32 rounded border cursor-pointer"
+            className="h-32 rounded border border-white/20 cursor-pointer"
             onClick={() => setZoomImage(preview)}
           />
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-gray-400 mt-1">
             Click image to zoom
           </p>
         </div>
@@ -136,7 +162,7 @@ const FeedbackComplaints = ({ role }) => {
         {loading ? "Submitting..." : "Submit"}
       </Button>
 
-      {/* IMAGE ZOOM MODAL */}
+      {/* IMAGE ZOOM */}
       {zoomImage && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
@@ -146,6 +172,7 @@ const FeedbackComplaints = ({ role }) => {
             src={zoomImage}
             className="max-h-[90vh] max-w-[90vw]"
             onClick={(e) => e.stopPropagation()}
+            alt="zoom"
           />
         </div>
       )}
