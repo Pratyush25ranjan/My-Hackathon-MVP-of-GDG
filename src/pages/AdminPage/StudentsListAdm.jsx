@@ -1,3 +1,5 @@
+// src/pages/AdminPage/StudentsListAdm.jsx
+
 import { Button } from "../../components/ui/button";
 import DarkCard from "../../components/ui/DarkCard";
 import { formatYearAdm } from "./Adminshared";
@@ -17,6 +19,7 @@ export default function StudentsListAdm({
 }) {
   return (
     <>
+      {/* TAB SWITCH */}
       <div className="flex gap-4 mb-6">
         <Button
           variant={studentTab === "approved" ? "default" : "outline"}
@@ -33,8 +36,15 @@ export default function StudentsListAdm({
         </Button>
       </div>
 
+      {/* APPROVED STUDENTS */}
       {studentTab === "approved" && (
         <div className="grid gap-4">
+          {approvedStudents.length === 0 && (
+            <p className="text-white/60 text-sm">
+              No approved students
+            </p>
+          )}
+
           {approvedStudents.map((u) => (
             <DarkCard key={u.id} className="space-y-2">
               <div className="flex items-center gap-3">
@@ -95,8 +105,15 @@ export default function StudentsListAdm({
         </div>
       )}
 
+      {/* PENDING STUDENTS */}
       {studentTab === "pending" && (
         <div className="grid gap-6">
+          {pendingStudents.length === 0 && (
+            <p className="text-white/60 text-sm">
+              No pending students
+            </p>
+          )}
+
           {pendingStudents.map((u) => (
             <DarkCard key={u.id} className="space-y-3">
               <p className="font-medium text-white">
@@ -121,13 +138,17 @@ export default function StudentsListAdm({
               )}
 
               <div className="flex gap-3">
-                <Button size="sm" onClick={() => approveUser(u.id)}>
+                <Button
+                  size="sm"
+                  onClick={() => approveUser(u)}
+                >
                   Approve
                 </Button>
+
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => rejectUser(u.id)}
+                  onClick={() => rejectUser(u)}
                 >
                   Reject
                 </Button>

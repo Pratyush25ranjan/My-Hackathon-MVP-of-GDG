@@ -1,4 +1,5 @@
 // src/pages/AdminPage/AdminDashboardAdm.jsx
+
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
@@ -7,7 +8,7 @@ import {
   query,
   where,
   doc,
-  updateDoc,
+  setDoc,
   deleteDoc,
   getDoc,
 } from "firebase/firestore";
@@ -50,14 +51,14 @@ export default function AdminDashboardAdm() {
     { key: "students", label: "Students" },
     { key: "news", label: "News Dashboard" },
     { key: "studentHelp", label: "Student Help" },
-
-    
   ];
 
   const logout = async () => {
     await signOut(auth);
     navigate("/");
   };
+
+  /* ================= POSTS ================= */
 
   const loadStudentPosts = async (email) => {
     const q = query(
@@ -68,60 +69,111 @@ export default function AdminDashboardAdm() {
     setStudentPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
-  const openReviewFromPost = async (post) => {
-    let userDoc = null;
+  /* ================= APPROVE / REJECT ================= */
 
-    if (post.authorUid) {
-      const snap = await getDocs(
-        query(collection(db, "users"), where("__name__", "==", post.authorUid))
+  const approveStudent = async (student) => {
+  try {
+    await setDoc(
+      doc(db, "users", student.id),
+      {
+        uid: student.id,
+        email: student.email,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        department: student.department,
+        year: student.year,
+        role: "student",
+        verified: true,
+        status: "approved",
+        approvedAt: new Date(),
+        profileImageBase64: student.profileImageBase64 || null,
+      },
+      { merge: true }
+    );
+
+    await deleteDoc(doc(db, "pendingStudents", student.id));
+
+    await sendStudentStatusEmail({
+      student_name: `${student.firstName} ${student.lastName}`,
+      student_email: student.email,
+      status: "approved",
+    });
+
+    setPendingStudents((prev) =>
+      prev.filter((s) => s.id !== student.id)
+    );
+
+    setApprovedStudents((prev) => [
+      ...prev,
+      { ...student, verified: true },
+    ]);
+
+    setReviewStudent(null);
+  } catch (err) {
+    console.error("Approve failed:", err);
+    alert("Failed to approve student");
+  }
+};
+
+
+  const rejectStudent = async (student) => {
+    try {
+      await deleteDoc(doc(db, "pendingStudents", student.id));
+
+      await sendStudentStatusEmail({
+        student_name: `${student.firstName} ${student.lastName}`,
+        student_email: student.email,
+        status: "rejected",
+      });
+
+      setPendingStudents((prev) =>
+        prev.filter((s) => s.id !== student.id)
       );
-      if (!snap.empty) userDoc = { id: snap.docs[0].id, ...snap.docs[0].data() };
+      setReviewStudent(null);
+    } catch (err) {
+      console.error("Reject failed:", err);
+      alert("Failed to reject student");
     }
-
-    if (!userDoc && post.authorEmail) {
-      const snap = await getDocs(
-        query(collection(db, "users"), where("email", "==", post.authorEmail))
-      );
-      if (!snap.empty) userDoc = { id: snap.docs[0].id, ...snap.docs[0].data() };
-    }
-
-    if (!userDoc) {
-      alert("Student record not found");
-      return;
-    }
-
-    setReviewStudent(userDoc);
-    await loadStudentPosts(userDoc.email);
   };
 
+  /* ================= LOAD DATA ================= */
+
   useEffect(() => {
-    const loadAll = async () => {
+  const loadAll = async () => {
+    try {
       const postSnap = await getDocs(collection(db, "posts"));
       setPosts(postSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
-      const userSnap = await getDocs(collection(db, "users"));
-      const approved = [];
-      const pending = [];
+      const approvedSnap = await getDocs(collection(db, "users"));
+      setApprovedStudents(
+        approvedSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      );
 
-      userSnap.forEach((d) => {
-        const data = d.data();
-        const user = { id: d.id, ...data };
-        data.verified ? approved.push(user) : pending.push(user);
-      });
+      const pendingSnap = await getDocs(collection(db, "pendingStudents"));
+      setPendingStudents(
+        pendingSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      );
 
-      setApprovedStudents(approved);
-      setPendingStudents(pending);
-
-      const adminSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
-      if (adminSnap.exists()) {
-        setAdminUser({ id: adminSnap.id, ...adminSnap.data() });
+      // 🔐 ADMIN CHECK (THIS WAS CRASHING)
+      if (auth.currentUser) {
+        const adminSnap = await getDoc(
+          doc(db, "users", auth.currentUser.uid)
+        );
+        if (adminSnap.exists()) {
+          setAdminUser({ id: adminSnap.id, ...adminSnap.data() });
+        }
       }
 
+    } catch (err) {
+      console.error("Admin dashboard load failed:", err);
+      alert("Permission error. Are you logged in as admin?");
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    loadAll();
-  }, []);
+  loadAll();
+}, []);
 
   if (loading) return <p className="p-6 text-white">Loading…</p>;
 
@@ -138,7 +190,6 @@ export default function AdminDashboardAdm() {
           <GgvCommunityAdm
             posts={posts}
             setFullscreenImage={setFullscreenImage}
-            openReviewFromPost={openReviewFromPost}
           />
         )}
 
@@ -148,7 +199,6 @@ export default function AdminDashboardAdm() {
             dept={dept}
             setDept={setDept}
             setFullscreenImage={setFullscreenImage}
-            openReviewFromPost={openReviewFromPost}
           />
         )}
 
@@ -170,13 +220,16 @@ export default function AdminDashboardAdm() {
             pendingStudents={pendingStudents}
             setReviewStudent={setReviewStudent}
             loadStudentPosts={loadStudentPosts}
+            setFullscreenImage={setFullscreenImage}
+            approveUser={approveStudent}
+            rejectUser={rejectStudent}
           />
         )}
 
         {activeTab === "studentHelp" && <StudentHelp role="admin" />}
       </div>
 
-      {/* REVIEW STUDENT MODAL (FIXED DARK) */}
+      {/* REVIEW STUDENT MODAL */}
       {reviewStudent && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex justify-center items-center"
@@ -237,7 +290,10 @@ export default function AdminDashboardAdm() {
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
           onClick={() => setFullscreenImage(null)}
         >
-          <img src={fullscreenImage} className="max-h-[90vh] max-w-[90vw]" />
+          <img
+            src={fullscreenImage}
+            className="max-h-[90vh] max-w-[90vw]"
+          />
         </div>
       )}
     </DashboardLayout>
